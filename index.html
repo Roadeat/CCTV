@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="referrer" content="no-referrer">
+    <title>桃園即時交通路況監控系統</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #020617; color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; overflow-x: hidden; }
+        .cctv-card {
+            background: #0f172a;
+            border-radius: 1rem;
+            overflow: hidden;
+            border: 1px solid #1e293b;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+        }
+        .media-container {
+            position: relative;
+            width: 100%;
+            padding-top: 56.25%; /* 16:9 比例 */
+            background: #000;
+        }
+        .cctv-media {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            border: none;
+            object-fit: contain;
+            opacity: 0;
+            transition: opacity 0.6s ease-in-out;
+        }
+        .cctv-media.loaded { opacity: 1; }
+        .nav-btn {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid #1e293b;
+            white-space: nowrap;
+        }
+        .nav-btn.active {
+            background: #2563eb;
+            color: white;
+            border-color: #60a5fa;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+        }
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 1.5rem;
+        }
+        .loader {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 24px; height: 24px;
+            border: 2px solid #334155;
+            border-top-color: #3b82f6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { to { transform: translate(-50%, -50%) rotate(360deg); } }
+        /* 手機端優化 */
+        @media (max-width: 640px) {
+            .grid-container { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <!-- 標頭區：包含名稱、日期、時間 -->
+    <header class="mb-8 flex flex-col md:flex-row md:items-end justify-between border-b border-slate-800 pb-6 gap-4">
+        <div>
+            <div class="flex items-center gap-2 mb-1">
+                <span class="w-3 h-3 bg-red-600 rounded-full animate-pulse shadow-[0_0_8px_rgba(220,38,38,0.8)]"></span>
+                <h1 class="text-3xl font-black text-white tracking-tight">桃園即時交通路況監控</h1>
+            </div>
+            <p class="text-slate-500 text-sm font-medium">深度穩定模式：切換標籤強制重置連線 | 分時載入：2.0s</p>
+        </div>
+        <div class="text-right">
+            <div id="date-display" class="text-slate-400 font-mono text-sm uppercase mb-1"></div>
+            <div id="time-display" class="text-5xl font-black text-blue-500 tabular-nums leading-none"></div>
+        </div>
+    </header>
+
+    <!-- 分頁導覽按鈕 -->
+    <nav id="group-nav" class="mb-10 flex flex-wrap gap-2 sticky top-0 z-50 bg-slate-950/90 backdrop-blur-md py-4 border-b border-slate-900">
+        <!-- JS 動態產生按鈕 -->
+    </nav>
+
+    <!-- 主顯示區域 -->
+    <main>
+        <div id="cctv-grid" class="grid-container">
+            <!-- CCTV 畫面卡片將注入於此 -->
+        </div>
+    </main>
+
+    <script>
+        // 資料定義
+        const cameraGroups = [
+            {
+                name: "橋頭 / 崎頂圓環",
+                cameras: [
+                    { id: "262", title: "橋頭 262", url: "https://cctvtraffic.tycg.gov.tw/camera262" },
+                    { id: "139", title: "橋頭 139", url: "https://cctvtraffic.tycg.gov.tw/camera139" },
+                    { id: "014", title: "崎頂 014", url: "https://cctvtraffic.tycg.gov.tw/camera014" },
+                    { id: "THB_39K100", title: "台3線 39K+100", url: "https://cctv-ss02.thb.gov.tw/T3-39K+100" }
+                ]
+            },
+            {
+                name: "武嶺橋",
+                cameras: [
+                    { id: "171", title: "武嶺橋 171", url: "https://cctvtraffic.tycg.gov.tw/camera171" },
+                    { id: "083", title: "武嶺橋 083", url: "https://cctvtraffic.tycg.gov.tw/camera083" },
+                    { id: "118", title: "武嶺橋 118", url: "https://cctvtraffic.tycg.gov.tw/camera118" },
+                    { id: "167", title: "武嶺橋 167", url: "https://cctvtraffic.tycg.gov.tw/camera167" },
+                    { id: "THB_37K920", title: "台3線 37K+920", url: "https://cctv-ss02.thb.gov.tw/T3-37K+920" },
+                    { id: "168", title: "武嶺橋 168", url: "https://cctvtraffic.tycg.gov.tw/camera168" }
+                ]
+            },
+            {
+                name: "青埔 / 大竹地區",
+                cameras: [
+                    { id: "222", title: "高鐵北/青埔路", url: "https://cctvtraffic.tycg.gov.tw/camera222" },
+                    { id: "127", title: "大竹下閘道", url: "https://cctvtraffic.tycg.gov.tw/camera127" },
+                    { id: "128", title: "大竹上閘道", url: "https://cctvtraffic.tycg.gov.tw/camera128" },
+                    { id: "158", title: "領航北/高鐵南", url: "https://cctvtraffic.tycg.gov.tw/camera158" }
+                ]
+            },
+            {
+                name: "中豐北系列",
+                cameras: [
+                    { id: "307", title: "中豐北南出 307", url: "https://cctvtraffic.tycg.gov.tw/camera307" },
+                    { id: "281", title: "中豐北南出 281", url: "https://cctvtraffic.tycg.gov.tw/camera281" },
+                    { id: "280", title: "中豐北南出 280", url: "https://cctvtraffic.tycg.gov.tw/camera280" },
+                    { id: "279", title: "中豐北北上 279", url: "https://cctvtraffic.tycg.gov.tw/camera279" },
+                    { id: "032", title: "中豐北北上 032", url: "https://cctvtraffic.tycg.gov.tw/camera032" },
+                    { id: "031", title: "中豐北/環北", url: "https://cctvtraffic.tycg.gov.tw/camera031" }
+                ]
+            }
+        ];
+
+        // 數位時鐘
+        function updateTime() {
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'long' });
+            const timeStr = now.toLocaleTimeString('zh-TW', { hour12: false });
+            document.getElementById('date-display').textContent = dateStr;
+            document.getElementById('time-display').textContent = timeStr;
+        }
+
+        // 產生即時快照 URL
+        function getSrc(camId) {
+            const t = Date.now();
+            if (camId.startsWith("THB")) {
+                return `https://cctv-ss02.thb.gov.tw/live?camid=${camId.split('_')[1]}&t=${t}`;
+            }
+            return `https://cctvtraffic.tycg.gov.tw/camera/snapshot?id=${camId}&v=${t}`;
+        }
+
+        let currentLoadTimeouts = [];
+
+        async function loadGroup(index) {
+            // 1. 徹底中斷所有背景連線
+            window.stop();
+            currentLoadTimeouts.forEach(t => clearTimeout(t));
+            currentLoadTimeouts = [];
+
+            const grid = document.getElementById('cctv-grid');
+            
+            // 2. 徹底清理舊有的媒體元素，將 src 設為空字串以釋放 Socket
+            const oldMedia = grid.querySelectorAll('img, iframe');
+            oldMedia.forEach(el => {
+                el.onload = null;
+                el.onerror = null;
+                el.src = ""; 
+                el.remove();
+            });
+            grid.innerHTML = '';
+
+            const group = cameraGroups[index];
+            document.querySelectorAll('.nav-btn').forEach((btn, i) => btn.classList.toggle('active', i === index));
+
+            // 3. 建立畫面結構骨架
+            group.cameras.forEach(cam => {
+                const card = document.createElement('div');
+                card.className = 'cctv-card';
+                card.innerHTML = `
+                    <div class="media-container" id="container-${cam.id}">
+                        <div class="loader" id="loader-${cam.id}"></div>
+                        <img 
+                            id="img-${cam.id}"
+                            class="cctv-media" 
+                            onload="this.classList.add('loaded'); document.getElementById('loader-${cam.id}').style.display='none';"
+                            onerror="handleImgError(this, '${cam.id}', '${cam.url}')"
+                            referrerpolicy="no-referrer"
+                        >
+                    </div>
+                    <div class="p-4 bg-slate-900 border-t border-slate-800 flex justify-between items-center">
+                        <span class="text-sm font-bold text-slate-100 tracking-tight">${cam.title}</span>
+                        <div class="flex gap-2">
+                            <button onclick="forceRefresh('${cam.id}')" class="text-[10px] bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg text-slate-400 transition font-bold uppercase">重載</button>
+                            <a href="${cam.url}" target="_blank" class="text-[10px] bg-blue-600/20 hover:bg-blue-600 text-blue-400 hover:text-white px-3 py-1.5 rounded-lg transition font-bold uppercase">獨立開啟</a>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+
+            // 4. 分時載入：每 2000ms 加載一個，確保連線穩定不黑屏
+            group.cameras.forEach((cam, i) => {
+                const timeout = setTimeout(() => {
+                    const img = document.getElementById(`img-${cam.id}`);
+                    if (img) {
+                        img.src = getSrc(cam.id);
+                    }
+                }, i * 2000);
+                currentLoadTimeouts.push(timeout);
+            });
+        }
+
+        // 單一畫面強制刷新
+        function forceRefresh(camId) {
+            const img = document.getElementById(`img-${camId}`);
+            const loader = document.getElementById(`loader-${camId}`);
+            if (img) {
+                img.classList.remove('loaded');
+                if (loader) loader.style.display = 'block';
+                img.src = getSrc(camId);
+            }
+        }
+
+        // 圖片載入錯誤處理（轉為 Iframe 嵌入）
+        function handleImgError(img, camId, webUrl) {
+            const container = document.getElementById(`container-${camId}`);
+            if (container) {
+                container.innerHTML = `<iframe src="${webUrl}" class="cctv-media loaded" referrerpolicy="no-referrer"></iframe>`;
+            }
+        }
+
+        // 初始化
+        function init() {
+            const nav = document.getElementById('group-nav');
+            cameraGroups.forEach((group, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'nav-btn px-5 py-2.5 bg-slate-900 text-slate-400 rounded-xl text-sm font-bold';
+                btn.textContent = group.name;
+                btn.onclick = () => loadGroup(index);
+                nav.appendChild(btn);
+            });
+
+            updateTime();
+            setInterval(updateTime, 1000);
+            
+            // 預設開啟「橋頭 / 崎頂圓環」
+            loadGroup(0); 
+
+            // 每 60 秒定時刷新當前頁面所有圖片，維持影像即時性
+            setInterval(() => {
+                document.querySelectorAll('img.cctv-media').forEach(img => {
+                    if (img.src && !img.src.includes('about:blank')) {
+                        const id = img.id.replace('img-', '');
+                        img.src = getSrc(id);
+                    }
+                });
+            }, 60000);
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
