@@ -40,11 +40,11 @@
             background: #000;
         }
 
-        /* 地圖專用容器優化：限制高度避免過大 */
+        /* 地圖專用容器優化 */
         .map-container {
             position: relative;
             width: 100%;
-            height: 200px; /* 固定高度讓排版整齊 */
+            height: 200px;
             background: #111827;
             display: flex;
             align-items: center;
@@ -54,7 +54,7 @@
         .map-img {
             max-width: 100%;
             max-height: 100%;
-            object-fit: contain; /* 確保地圖完整顯示不被切除 */
+            object-fit: contain;
         }
 
         .cctv-media {
@@ -124,17 +124,17 @@
             <button onclick="enterRegion('大溪地區')" class="region-card p-10 rounded-2xl text-center group">
                 <div class="text-4xl mb-4 group-hover:scale-110 transition">🗺️</div>
                 <div class="text-2xl font-black text-white">大溪地區</div>
-                <div class="text-slate-500 mt-2 text-sm">崎頂、橋頭、武嶺橋、老街</div>
+                <div class="text-slate-500 mt-2 text-sm text-balance">崎頂、橋頭、武嶺橋、大溪老街</div>
             </button>
             <button onclick="enterRegion('青埔地區')" class="region-card p-10 rounded-2xl text-center group">
                 <div class="text-4xl mb-4 group-hover:scale-110 transition">🚄</div>
                 <div class="text-2xl font-black text-white">青埔地區</div>
-                <div class="text-slate-500 mt-2 text-sm">華泰周邊、大竹交流道</div>
+                <div class="text-slate-500 mt-2 text-sm text-balance">華泰名品城周邊、大竹交流道</div>
             </button>
             <button onclick="enterRegion('中豐北交流道')" class="region-card p-10 rounded-2xl text-center group">
                 <div class="text-4xl mb-4 group-hover:scale-110 transition">🛣️</div>
                 <div class="text-2xl font-black text-white">中豐北交流道</div>
-                <div class="text-slate-500 mt-2 text-sm">國一中豐北出口監控</div>
+                <div class="text-slate-500 mt-2 text-sm text-balance">國道一號中豐北路出口監控</div>
             </button>
         </div>
     </div>
@@ -178,17 +178,18 @@
                 },
                 {
                     tab: "武嶺橋西側",
+                    mapImage: "武嶺橋西側.jpg",
                     cameras: [
+                        { id: "167", title: "武嶺橋 167", url: "https://cctvtraffic.tycg.gov.tw/camera167" },
+                        { id: "168", title: "武嶺橋 168", url: "https://cctvtraffic.tycg.gov.tw/camera168" },
                         { id: "118", title: "武嶺橋 118", url: "https://cctvtraffic.tycg.gov.tw/camera118" },
                         { id: "170", title: "武嶺橋 170", url: "https://cctvtraffic.tycg.gov.tw/camera170" },
-                        { id: "083", title: "武嶺橋 083", url: "https://cctvtraffic.tycg.gov.tw/camera083" },
-                        { id: "171", title: "武嶺橋 171", url: "https://cctvtraffic.tycg.gov.tw/camera171" },
-                        { id: "167", title: "武嶺橋 167", url: "https://cctvtraffic.tycg.gov.tw/camera167" },
-                        { id: "168", title: "武嶺橋 168", url: "https://cctvtraffic.tycg.gov.tw/camera168" }
+                        { id: "171", title: "武嶺橋 171", url: "https://cctvtraffic.tycg.gov.tw/camera171" }
                     ]
                 },
                 {
                     tab: "武嶺橋東側",
+                    mapImage: "武嶺橋東側.jpg",
                     cameras: [
                         { id: "THB_36K970", title: "台3線 36K+970", url: "https://cctv-ss02.thb.gov.tw/T3-36K+970" },
                         { id: "169", title: "武嶺橋東 169", url: "https://cctvtraffic.tycg.gov.tw/camera169" },
@@ -198,6 +199,7 @@
                 },
                 {
                     tab: "大溪老街",
+                    mapImage: "大溪老街.jpg",
                     cameras: [
                         { id: "087", title: "老街周邊 087", url: "https://cctvtraffic.tycg.gov.tw/camera087" },
                         { id: "THB_T7_0K100", title: "台7線 0K+100", url: "https://cctv-ss03.thb.gov.tw/T7-0K+100" },
@@ -315,7 +317,7 @@
 
             const grid = document.getElementById('cctv-grid');
             
-            // 插入優化後的地圖卡片
+            // 插入地圖卡片
             if (group.mapImage) {
                 const mapCard = document.createElement('div');
                 mapCard.className = 'map-card';
@@ -375,7 +377,7 @@
             updateTime();
             setInterval(updateTime, 1000);
             
-            // 自動定時更新圖檔
+            // 定時更新
             setInterval(() => {
                 document.querySelectorAll('img.cctv-media').forEach(img => {
                     if (img.src && img.classList.contains('loaded')) {
