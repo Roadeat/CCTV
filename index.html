@@ -36,7 +36,7 @@
         .media-container {
             position: relative;
             width: 100%;
-            padding-top: 56.25%; /* 16:9 */
+            padding-top: 56.25%; /* 16:9 比例 */
             background: #000;
         }
 
@@ -44,7 +44,7 @@
         .map-container {
             position: relative;
             width: 100%;
-            height: 200px;
+            height: 220px;
             background: #111827;
             display: flex;
             align-items: center;
@@ -72,6 +72,7 @@
         .nav-btn {
             transition: all 0.2s;
             border: 1px solid #334155;
+            white-space: nowrap;
         }
         .nav-btn.active {
             background: #2563eb;
@@ -117,7 +118,7 @@
         </div>
     </header>
 
-    <!-- Home View -->
+    <!-- Home View (首頁三區塊) -->
     <div id="home-view">
         <h2 class="text-xl font-bold mb-6 text-slate-400 flex items-center gap-2">選擇監控地區</h2>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -129,7 +130,7 @@
             <button onclick="enterRegion('青埔地區')" class="region-card p-10 rounded-2xl text-center group">
                 <div class="text-4xl mb-4 group-hover:scale-110 transition">🚄</div>
                 <div class="text-2xl font-black text-white">青埔地區</div>
-                <div class="text-slate-500 mt-2 text-sm text-balance">華泰名品城周邊、大竹交流道</div>
+                <div class="text-slate-500 mt-2 text-sm text-balance">華泰名品城、大竹交流道</div>
             </button>
             <button onclick="enterRegion('中豐北交流道')" class="region-card p-10 rounded-2xl text-center group">
                 <div class="text-4xl mb-4 group-hover:scale-110 transition">🛣️</div>
@@ -142,18 +143,18 @@
     <!-- Detail View -->
     <div id="detail-view" class="hidden">
         <div class="flex items-center gap-4 mb-6">
-            <button onclick="showHome()" class="p-2 bg-slate-800 hover:bg-slate-700 rounded-full text-white transition">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke-width="2"/></svg>
+            <button onclick="showHome()" class="p-2 bg-slate-800 hover:bg-slate-700 rounded-full text-white transition shadow-lg">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
             <h2 id="region-title" class="text-2xl font-black text-blue-400 uppercase tracking-widest">區域名稱</h2>
         </div>
 
-        <nav id="tab-nav" class="mb-8 flex flex-wrap gap-2 sticky top-0 z-50 bg-slate-950/90 backdrop-blur-md py-4 border-b border-slate-900">
-            <!-- Tabs injected here -->
+        <nav id="tab-nav" class="mb-8 flex flex-wrap gap-2 sticky top-0 z-50 bg-slate-950/90 backdrop-blur-md py-4 border-b border-slate-900 overflow-x-auto no-scrollbar">
+            <!-- 子區域分頁按鈕注入點 -->
         </nav>
 
         <div id="cctv-grid" class="grid-container pb-20">
-            <!-- Cards injected here -->
+            <!-- 攝影機卡片與地圖注入點 -->
         </div>
     </div>
 
@@ -211,6 +212,7 @@
             "青埔地區": [
                 {
                     tab: "華泰周邊",
+                    mapImage: "華泰周邊.jpg",
                     cameras: [
                         { id: "160", title: "華泰 160", url: "https://cctvtraffic.tycg.gov.tw/camera160" },
                         { id: "153", title: "華泰 153", url: "https://cctvtraffic.tycg.gov.tw/camera153" },
@@ -222,6 +224,7 @@
                 },
                 {
                     tab: "大竹交流道",
+                    mapImage: "大竹交流道.jpg",
                     cameras: [
                         { id: "127", title: "大竹下閘道 127", url: "https://cctvtraffic.tycg.gov.tw/camera127" },
                         { id: "THB_31_6K", title: "台31線 6K+000", url: "https://cctv-ss02.thb.gov.tw/T31-6K+000" },
@@ -232,6 +235,7 @@
             "中豐北交流道": [
                 {
                     tab: "中豐北路監控",
+                    mapImage: "中豐北路.jpg",
                     cameras: [
                         { id: "281", title: "中豐北南出 281", url: "https://cctvtraffic.tycg.gov.tw/camera281" },
                         { id: "280", title: "中豐北南出 280", url: "https://cctvtraffic.tycg.gov.tw/camera280" },
@@ -271,7 +275,7 @@
             
             data[name].forEach((group, idx) => {
                 const btn = document.createElement('button');
-                btn.className = 'nav-btn px-6 py-2.5 bg-slate-900 text-slate-400 rounded-xl text-sm font-bold';
+                btn.className = 'nav-btn px-5 py-2.5 bg-slate-900 text-slate-400 rounded-xl text-sm font-bold';
                 btn.textContent = group.tab;
                 btn.onclick = () => loadTab(idx);
                 nav.appendChild(btn);
@@ -317,17 +321,17 @@
 
             const grid = document.getElementById('cctv-grid');
             
-            // 插入地圖卡片
+            // 插入地圖對照圖
             if (group.mapImage) {
                 const mapCard = document.createElement('div');
                 mapCard.className = 'map-card';
                 mapCard.innerHTML = `
                     <div class="p-3 bg-slate-800 flex items-center gap-2 text-xs font-bold text-blue-400 border-b border-slate-700">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" stroke-width="2"/><path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" stroke-width="2"/></svg>
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
                         位置對照圖
                     </div>
                     <div class="map-container">
-                        <img src="${group.mapImage}" class="map-img" alt="地圖對照">
+                        <img src="${group.mapImage}" class="map-img" alt="地圖對照圖">
                     </div>
                 `;
                 grid.appendChild(mapCard);
@@ -369,6 +373,7 @@
         function handleImgError(img, camId, webUrl) {
             const container = document.getElementById(`container-${camId}`);
             if (container) {
+                // 如果快照 API 失敗，退而求其次載入原始網頁
                 container.innerHTML = `<iframe src="${webUrl}" class="cctv-media loaded" referrerpolicy="no-referrer"></iframe>`;
             }
         }
@@ -377,7 +382,7 @@
             updateTime();
             setInterval(updateTime, 1000);
             
-            // 定時更新
+            // 每 60 秒刷新一次目前所有載入成功的圖檔
             setInterval(() => {
                 document.querySelectorAll('img.cctv-media').forEach(img => {
                     if (img.src && img.classList.contains('loaded')) {
